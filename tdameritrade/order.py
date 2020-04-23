@@ -13,6 +13,7 @@ class OrderBuilder(object):
                  complexOrderStrategyType='NONE',
                  specialInstruction=None,
                  requestedDestination='AUTO',
+                 childOrderStrategies=None,
                  priceLinkBasis=None,
                  priceLinkType=None,
                  stopPrice=0.0,
@@ -42,6 +43,36 @@ class OrderBuilder(object):
             'specialInstruction': specialInstruction,
             'orderStrategyType': orderStrategyType,
         }
+        if childOrderStrategies is not None and orderStrategyType == 'TRIGGER':
+            self._rep['childOrderStrategies'] = [{
+                "orderStrategyType":"OCO",
+                "childOrderStrategies": []
+            }]
+
+    def addOCOOrder(self, assetType, symbol, price, OCOQuantity, orderStrategyType='OCO', childOrderStrategyType='SINGLE', orderType="LIMIT", instruction="SELL", stopPrice=None):
+        leg = self._rep['childOrderStrategies'][0]['childOrderStrategies']
+
+        childLeg = {
+            "orderStrategyType": childOrderStrategyType,
+            "session":"NORMAL",
+            "DURATION":self._rep['duration'],
+            "orderType":orderType,
+            "price":price,
+            "orderLegCollection":[
+                {
+                    "instruction":"SELL",
+                    "quantity":OCOQuantity,
+                    "instrument":{
+                        "assetType":assetType,
+                        "symbol":symbol
+                    }
+                }
+            ]
+        }
+        if stopPrice is not None:
+            childLeg["stopPrice"] = stopPrice
+        leg.append(childLeg)
+        self._rep['childOrderStrategies'].append(leg)
 
     def addLeg(self, assetType, symbol, instruction, positionEffect, quantity, quantityType, type=None, putCall=None):
         leg = {
